@@ -13,6 +13,13 @@ The tool inventories:
 - Network interfaces, internal IPs, and external IPs
 - Managed Instance Groups (MIGs)
 - GKE clusters and node pools
+- Cloud SQL instances (MySQL, PostgreSQL, SQL Server) with engine, version, edition, tier, storage, HA, replicas, backups, and databases
+- Cloud Storage buckets (location, storage class, versioning, lifecycle, retention, encryption, public-access, and access controls)
+- BigQuery datasets (location, table counts/types, aggregated logical size, expiration, encryption, and labels)
+- Cloud Logging sinks and log buckets (destinations, filters, retention, analytics, and CMEK)
+- Backup and DR Service (management servers, backup vaults, and backup plans)
+- NetApp Volumes (storage pools and volumes: protocol, capacity, service level, and encryption)
+- VM Manager / OS Config (patch deployments and OS policy assignments)
 - Associations between VMs, GKE node pools, and MIGs
 - Preliminary Azure service and compute-family recommendations
 
@@ -81,8 +88,16 @@ Grant the following predefined IAM roles to the user or service account running 
 | Cloud Asset Viewer | `roles/cloudasset.viewer` | Read Cloud Asset Inventory (skip if using `--skip-assets`) |
 | Compute Viewer | `roles/compute.viewer` | Read Compute Engine VMs, disks, machine types, and instance groups |
 | Kubernetes Engine Viewer | `roles/container.viewer` | Read GKE clusters and node pools (skip if using `--skip-gke`) |
+| Cloud SQL Viewer | `roles/cloudsql.viewer` | Read Cloud SQL instances and databases (skip if using `--skip-sql`) |
+| BigQuery Metadata Viewer | `roles/bigquery.metadataViewer` | Read BigQuery datasets and table metadata (skip if using `--skip-bigquery`) |
+| Logs Viewer | `roles/logging.viewer` | Read Cloud Logging sinks and log buckets (skip if using `--skip-logging`) |
+| Backup and DR Viewer | `roles/backupdr.viewer` | Read Backup and DR management servers, vaults, and plans (skip if using `--skip-backupdr`) |
+| NetApp Viewer | `roles/netapp.viewer` | Read NetApp storage pools and volumes (skip if using `--skip-netapp`) |
+| OS Config Patch Deployment Viewer | `roles/osconfig.patchDeploymentViewer` | Read VM Manager patch deployments and OS policy assignments (skip if using `--skip-vmmanager`) |
 
 > All roles are read-only. No write, delete, or admin permissions are required.
+
+> **Cloud Storage:** Listing buckets project-wide requires the `storage.buckets.list` permission, which has no narrower predefined viewer role. Grant basic **Project Viewer** (`roles/viewer`) or a custom role that includes `storage.buckets.list`, or use `--skip-storage`. Project Viewer also satisfies every other collector above if you prefer a single role over the per-service viewer roles.
 
 ### Grant at organization scope
 
@@ -90,12 +105,14 @@ Grant the following predefined IAM roles to the user or service account running 
 ORG_ID=123456789
 MEMBER="user:you@example.com"   # or "serviceAccount:inventory-sa@PROJECT_ID.iam.gserviceaccount.com"
 
-for ROLE in roles/browser roles/cloudasset.viewer roles/compute.viewer roles/container.viewer; do
+for ROLE in roles/browser roles/cloudasset.viewer roles/compute.viewer roles/container.viewer roles/cloudsql.viewer roles/bigquery.metadataViewer roles/logging.viewer roles/backupdr.viewer roles/netapp.viewer roles/osconfig.patchDeploymentViewer; do
   gcloud organizations add-iam-policy-binding "$ORG_ID" \
     --member="$MEMBER" \
     --role="$ROLE"
 done
 ```
+
+> Add `roles/viewer` (or a custom role with `storage.buckets.list`) if you want Cloud Storage bucket collection.
 
 For folder scope, use `gcloud resource-manager folders add-iam-policy-binding FOLDER_ID`; for a single project, use `gcloud projects add-iam-policy-binding PROJECT_ID`.
 
@@ -106,10 +123,17 @@ gcloud services enable \
   cloudasset.googleapis.com \
   cloudresourcemanager.googleapis.com \
   compute.googleapis.com \
-  container.googleapis.com
+  container.googleapis.com \
+  sqladmin.googleapis.com \
+  storage.googleapis.com \
+  bigquery.googleapis.com \
+  logging.googleapis.com \
+  backupdr.googleapis.com \
+  netapp.googleapis.com \
+  osconfig.googleapis.com
 ```
 
-`container.googleapis.com` is not required when using `--skip-gke`.
+`container.googleapis.com` is not required when using `--skip-gke`. `sqladmin.googleapis.com` is not required when using `--skip-sql`. Likewise, each of `storage`, `bigquery`, `logging`, `backupdr`, `netapp`, and `osconfig` is only needed when its collector runs (skip with `--skip-storage`, `--skip-bigquery`, `--skip-logging`, `--skip-backupdr`, `--skip-netapp`, and `--skip-vmmanager`). Any API that is disabled or inaccessible is logged to the `Errors` worksheet and the run continues.
 
 ## Usage
 
@@ -127,6 +151,13 @@ python gcp_azure_inventory.py --scope <SCOPE> [options]
 | `--output-prefix` | No | `gcp_azure_inventory` | Output path/filename prefix (no extension) |
 | `--skip-assets` | No | off | Skip Cloud Asset Inventory collection |
 | `--skip-gke` | No | off | Skip GKE cluster and node-pool enrichment |
+| `--skip-sql` | No | off | Skip Cloud SQL database collection |
+| `--skip-storage` | No | off | Skip Cloud Storage bucket collection |
+| `--skip-bigquery` | No | off | Skip BigQuery dataset collection |
+| `--skip-logging` | No | off | Skip Cloud Logging sink/bucket collection |
+| `--skip-backupdr` | No | off | Skip Backup and DR Service collection |
+| `--skip-netapp` | No | off | Skip NetApp Volumes collection |
+| `--skip-vmmanager` | No | off | Skip VM Manager (OS Config) collection |
 
 ### Examples
 
@@ -144,7 +175,7 @@ python gcp_azure_inventory.py --scope projects/my-project-id
 python gcp_azure_inventory.py --scope organizations/123456789 --output-prefix reports/customer-prod
 
 # Skip optional collectors
-python gcp_azure_inventory.py --scope organizations/123456789 --skip-assets --skip-gke
+python gcp_azure_inventory.py --scope organizations/123456789 --skip-assets --skip-gke --skip-sql --skip-storage --skip-bigquery --skip-logging --skip-backupdr --skip-netapp --skip-vmmanager
 ```
 
 ## Output
@@ -158,6 +189,13 @@ Each run produces one Excel workbook plus supporting CSV files, named from `--ou
 <prefix>_compute.csv
 <prefix>_disks.csv
 <prefix>_gke_nodepools.csv
+<prefix>_cloud_sql.csv
+<prefix>_cloud_storage.csv
+<prefix>_bigquery.csv
+<prefix>_cloud_logging.csv
+<prefix>_backup_dr.csv
+<prefix>_netapp_volumes.csv
+<prefix>_vm_manager.csv
 ```
 
 ### Workbook sheets
@@ -174,6 +212,13 @@ Each run produces one Excel workbook plus supporting CSV files, named from `--ou
 | `Managed_Groups` | Managed Instance Groups and preliminary VM Scale Set mappings |
 | `GKE_Clusters` | GKE cluster configuration and preliminary AKS mapping |
 | `GKE_NodePools` | GKE node-pool configuration, autoscaling, machine type, and disks |
+| `Cloud_SQL` | Cloud SQL instances (MySQL, PostgreSQL, SQL Server): engine, version, edition, tier, storage, HA, replicas, backups, and databases |
+| `Cloud_Storage` | Cloud Storage buckets: location, storage class, versioning, lifecycle, retention, encryption, and access controls |
+| `BigQuery` | BigQuery datasets: location, table counts/types, aggregated logical size, expiration, encryption, and labels |
+| `Cloud_Logging` | Cloud Logging sinks and log buckets: destinations, filters, retention, analytics, and CMEK |
+| `Backup_DR` | Backup and DR Service: management servers, backup vaults, and backup plans |
+| `NetApp_Volumes` | NetApp storage pools and volumes: protocol, capacity, service level, and encryption |
+| `VM_Manager` | VM Manager (OS Config): patch deployments and OS policy assignments |
 | `Recommendations` | Additional data required for a complete Azure migration assessment |
 | `Errors` | Permission failures, inaccessible APIs, and per-project collection errors |
 
