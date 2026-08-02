@@ -71,6 +71,34 @@ export GOOGLE_APPLICATION_CREDENTIALS="/path/inventory-sa.json"
 
 The identity needs **read-only** access to list projects/folders, Cloud Asset Inventory, Compute Engine resources, and GKE (when enabled). Inaccessible resources are logged to the `Errors` worksheet rather than stopping the run.
 
+## Required Permissions
+
+Grant the following predefined IAM roles to the user or service account running the script. Assign them at the **organization**, **folder**, or **project** level to match your `--scope`.
+
+| Role | ID | Purpose |
+|---|---|---|
+| Browser | `roles/browser` | List and read the resource hierarchy (organizations, folders, projects) |
+| Cloud Asset Viewer | `roles/cloudasset.viewer` | Read Cloud Asset Inventory (skip if using `--skip-assets`) |
+| Compute Viewer | `roles/compute.viewer` | Read Compute Engine VMs, disks, machine types, and instance groups |
+| Kubernetes Engine Viewer | `roles/container.viewer` | Read GKE clusters and node pools (skip if using `--skip-gke`) |
+
+> All roles are read-only. No write, delete, or admin permissions are required.
+
+### Grant at organization scope
+
+```bash
+ORG_ID=123456789
+MEMBER="user:you@example.com"   # or "serviceAccount:inventory-sa@PROJECT_ID.iam.gserviceaccount.com"
+
+for ROLE in roles/browser roles/cloudasset.viewer roles/compute.viewer roles/container.viewer; do
+  gcloud organizations add-iam-policy-binding "$ORG_ID" \
+    --member="$MEMBER" \
+    --role="$ROLE"
+done
+```
+
+For folder scope, use `gcloud resource-manager folders add-iam-policy-binding FOLDER_ID`; for a single project, use `gcloud projects add-iam-policy-binding PROJECT_ID`.
+
 ## Required APIs
 
 ```bash
