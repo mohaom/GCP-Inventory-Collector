@@ -1,5 +1,13 @@
 # GCP to Azure Migration Inventory & Baseline BOQ Generator
 
+> **Disclaimer — No Warranty and No Liability**
+>
+> This script is provided free of charge, on an "AS IS" and "AS AVAILABLE" basis, without warranty or condition of any kind, whether express, implied, or statutory, including but not limited to warranties of merchantability, fitness for a particular purpose, accuracy, and non-infringement.
+>
+> You run this script entirely at your own risk. The author assumes no obligation, duty, or responsibility of any kind in connection with it and shall not be liable for any direct, indirect, incidental, special, consequential, or exemplary damages — including but not limited to loss of data, loss of profits, service disruption, unexpected cloud charges, or business interruption — arising out of or related to the use of, or inability to use, this script, even if advised of the possibility of such damages.
+>
+> This is an independent utility and is not affiliated with, endorsed by, or supported by Google or Microsoft. Its output (inventory, Azure recommendations, and baseline BOQ) consists of configuration-based estimates for early planning only and may be incomplete or inaccurate (see [Limitations](#limitations)). You are solely responsible for reviewing the code, validating all results, and ensuring your use complies with the terms, policies, and permissions of any systems it accesses before making any architectural, financial, or migration decisions.
+
 A Python utility that discovers resources across a Google Cloud organization, folder, or project and produces an Azure-oriented migration inventory and baseline bill of quantities (BOQ).
 
 ## Overview
