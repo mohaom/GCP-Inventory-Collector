@@ -265,7 +265,7 @@ VM family suggestions are derived from provisioned configuration (D-series gener
 
 - **Configuration-based, not utilization-based.** Allocated resources are reported as-is; a 16-vCPU VM counts as 16 vCPU regardless of actual usage.
 - **GKE workloads are not inspected.** Kubernetes objects (Deployments, Pods, requests/limits, autoscalers, PVCs, Ingress, etc.) are not queried and are required for accurate AKS sizing.
-- **PaaS resources are counted, not sized.** Cloud Asset Inventory identifies services (Cloud SQL, Storage, Pub/Sub, BigQuery, Cloud Run, etc.), but service-specific collectors are needed for capacity and performance assessment.
+- **PaaS coverage is partial and configuration-based, not performance-based.** Dedicated collectors now capture Cloud SQL, Cloud Storage, BigQuery, Cloud Logging, Backup and DR, NetApp Volumes, and VM Manager, but they gather configuration and provisioned capacity rather than utilization (for example, Cloud Storage stored bytes/object count and BigQuery query/slot patterns still require Cloud Monitoring, and BigQuery table sizing is sampled up to 1000 tables per dataset). Services without a dedicated collector (Pub/Sub, Cloud Run, Cloud Functions, Redis, Dataflow, Dataproc, KMS, Artifact Registry, load balancers, etc.) remain count-only via Cloud Asset Inventory.
 - **Regional MIGs** are checked only in regions where VMs were discovered; zero-instance regional groups elsewhere may not appear.
 - **OS detection is an estimate** from disk images, licenses, and metadata; custom images may show as `Unknown`.
 - **Partial permissions are tolerated.** The run continues on per-project errors — always review the `Errors` sheet before trusting totals.
