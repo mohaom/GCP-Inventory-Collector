@@ -49,13 +49,32 @@ Results are written to `gcp_azure_inventory.xlsx` and matching CSV files in the 
 
 ## Installation
 
-Place `gcp_azure_inventory.py` and `requirements.txt` in the same directory, then install dependencies (a virtual environment is recommended):
+The tool is organized as a small Python package (`gcp_inventory/`) plus a thin
+`gcp_azure_inventory.py` entry point. Copy the whole project directory, then
+install dependencies (a virtual environment is recommended):
 
 ```bash
 python -m venv .venv
 # Windows:        .venv\Scripts\activate
 # Linux / macOS:  source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+### Project structure
+
+```text
+gcp_azure_inventory.py        # thin entry point (delegates to the package)
+gcp_inventory/
+  cli.py                      # argument parsing and end-to-end orchestration
+  helpers.py                  # shared helper utilities
+  discovery.py                # project discovery and Cloud Asset Inventory
+  mapping.py                  # GCP-to-Azure service and VM family mapping
+  reporting.py                # summaries, Azure baseline, and workbook formatting
+  collectors/
+    compute.py                # Compute Engine, MIGs, and GKE
+    databases.py              # Cloud SQL
+    services.py               # Cloud Storage, BigQuery, Logging, Backup/DR, NetApp, VM Manager
+requirements.txt
 ```
 
 ## Authentication
@@ -139,6 +158,12 @@ gcloud services enable \
 
 ```bash
 python gcp_azure_inventory.py --scope <SCOPE> [options]
+```
+
+You can equivalently run the package module directly:
+
+```bash
+python -m gcp_inventory --scope <SCOPE> [options]
 ```
 
 `<SCOPE>` is one of `organizations/ID`, `folders/ID`, or `projects/ID`.

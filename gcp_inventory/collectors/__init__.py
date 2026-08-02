@@ -1,0 +1,1 @@
+"""Resource-specific inventory collectors."""
