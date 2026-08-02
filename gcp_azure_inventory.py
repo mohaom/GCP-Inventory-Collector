@@ -767,6 +767,17 @@ def list_instance_group_members(project: str, group_url: str, compute,
             token = response.get("nextPageToken")
             if not token:
                 break
+        except HttpError as ex:
+            # GKE (especially Autopilot, "gk3-" clusters) reports instance group
+            # URLs that can be stale or transient. The backing group may already
+            # be deleted by the time we query it, yielding a benign 404. Record it
+            # as an informational skip rather than a hard error.
+            if getattr(ex, "resp", None) is not None and ex.resp.status == 404:
+                errors.append({"Area": "GKE node group members (skipped, transient/not found)",
+                               "Project": project, "Error": f"{zone}/{group_name}: instance group no longer exists (404)"})
+            else:
+                errors.append({"Area": "GKE node group members", "Project": project, "Error": f"{zone}/{group_name}: {ex}"})
+            break
         except Exception as ex:
             errors.append({"Area": "GKE node group members", "Project": project, "Error": f"{zone}/{group_name}: {ex}"})
             break
